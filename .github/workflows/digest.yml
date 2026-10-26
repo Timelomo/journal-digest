@@ -1,0 +1,79 @@
+name: OR Journal Digest
+
+on:
+  schedule:
+    # 每周一 00:30 UTC = 北京时间 08:30。改成每天：'30 0 * * *'
+    - cron: '30 0 * * 1'
+  workflow_dispatch:        # 允许在 Actions 页面手动触发
+    inputs:
+      mode:
+        description: '运行模式'
+        type: choice
+        options: [run, test-llm, preview]
+        default: run
+      provider:
+        description: '优先使用的大模型（留空=按 config.yaml 顺序）'
+        type: choice
+        options: ['', claude, openai, deepseek]
+        default: ''
+      since:
+        description: '可选：从该日期起重新抓取 (YYYY-MM-DD)'
+        required: false
+
+permissions:
+  contents: write           # 需要把 data/ 和 reports/ 提交回仓库
+
+concurrency:
+  group: digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      TZ: Asia/Shanghai
+      # ---- 大模型（至少配置一个）----
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+      DEEPSEEK_API_KEY:  ${{ secrets.DEEPSEEK_API_KEY }}
+      LLM_PROVIDER:      ${{ github.event.inputs.provider || vars.LLM_PROVIDER }}
+      # ---- 摘要补全（可选）----
+      OPENALEX_API_KEY:  ${{ secrets.OPENALEX_API_KEY }}
+      S2_API_KEY:        ${{ secrets.S2_API_KEY }}
+      ELSEVIER_API_KEY:  ${{ secrets.ELSEVIER_API_KEY }}
+      # ---- 邮件（可选）----
+      SMTP_HOST:         ${{ secrets.SMTP_HOST }}
+      SMTP_PORT:         ${{ secrets.SMTP_PORT }}
+      SMTP_USER:         ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD:     ${{ secrets.SMTP_PASSWORD }}
+      MAIL_TO:           ${{ secrets.MAIL_TO }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run digest
+        env:
+          MODE:  ${{ github.event.inputs.mode || 'run' }}
+          SINCE: ${{ github.event.inputs.since }}
+        run: |
+          case "$MODE" in
+            test-llm) python -m digest test-llm ;;
+            preview)  python -m digest run --no-llm ${SINCE:+--since "$SINCE"} ;;
+            *)        python -m digest run ${SINCE:+--since "$SINCE"} ;;
+          esac
+
+      - name: Commit state and report
+        if: always() && (github.event.inputs.mode || 'run') == 'run'
+        run: |
+          git config user.name  "digest-bot"
+          git config user.email "digest-bot@users.noreply.github.com"
+          git add data/ reports/
+          git diff --cached --quiet || git commit -m "digest: $(date +%F)"
+          git push

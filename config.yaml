@@ -1,0 +1,150 @@
+# =========================================================
+#  OR Journal Digest 配置文件
+#  改完后提交到仓库即可，下次运行自动生效
+# =========================================================
+
+# Crossref “礼貌池”联系邮箱（会放在请求参数里，提高稳定性；建议填写）
+contact_email: "your-email@example.com"
+
+# ---------------------------------------------------------
+# 目标期刊：name 用于展示，issn 任填一个（印刷版或电子版均可）
+# 新增期刊后可运行  python -m digest check  验证 ISSN 是否正确
+# enabled: false 可临时停用
+# ---------------------------------------------------------
+journals:
+  # INFORMS
+  - { name: "Operations Research",                       issn: "0030-364X" }
+  - { name: "Management Science",                        issn: "0025-1909" }
+  - { name: "Manufacturing & Service Operations Management", issn: "1523-4614" }
+  - { name: "INFORMS Journal on Computing",              issn: "1091-9856" }
+  - { name: "Transportation Science",                    issn: "0041-1655" }
+  - { name: "Mathematics of Operations Research",        issn: "0364-765X" }
+  - { name: "INFORMS Journal on Optimization",           issn: "2575-1484" }
+  # 数学规划
+  - { name: "Mathematical Programming",                  issn: "0025-5610" }
+  - { name: "SIAM Journal on Optimization",              issn: "1052-6234" }
+  # Elsevier
+  - { name: "European Journal of Operational Research",  issn: "0377-2217" }
+  - { name: "Computers & Operations Research",           issn: "0305-0548" }
+  - { name: "Omega",                                     issn: "0305-0483" }
+  - { name: "Transportation Research Part B",            issn: "0191-2615" }
+  - { name: "Transportation Research Part E",            issn: "1366-5545", enabled: false }
+  - { name: "International Journal of Production Economics", issn: "0925-5273", enabled: false }
+  # 其他
+  - { name: "Production and Operations Management",      issn: "1059-1478" }
+
+# ---------------------------------------------------------
+# 研究兴趣：用于给每篇论文打 1–5 分相关度，并把高分文章置顶
+# 写得越具体越好（方法 + 应用场景 + 不感兴趣的方向）
+# ---------------------------------------------------------
+research_interests: |
+  核心方向（命中任一项通常给 4–5 分）：
+  1. 鲁棒优化与分布鲁棒优化：不确定集/模糊集构造（Wasserstein、矩、φ-散度）、
+     可调鲁棒优化与决策规则、对偶重构与计算可处理性、鲁棒 MIP 算法
+  2. 两阶段/多阶段随机规划：样本平均近似（SAA）、场景生成与缩减、
+     Benders/L-shaped 分解、渐进对冲（PH）、随机对偶动态规划（SDDP）、
+     机会约束与风险度量（CVaR）
+  3. 深度强化学习：用于序贯决策与组合优化求解、与数学规划结合的混合方法、
+     安全/鲁棒/分布式 RL、离线 RL、样本复杂度与收敛性理论
+  特别关注的交叉点：RL 与随机/鲁棒优化结合、数据驱动的不确定性建模、
+  学习加速求解器（learning to branch / cut / decompose）
+  相邻方向（通常 3 分）：一般动态规划/MDP、在线学习与 Bandit、仿真优化、
+  大规模整数规划算法
+  不太关注（1–2 分）：纯计量/实证类管理研究、无优化成分的纯经济学模型
+
+# 标签词表：LLM 只会从这里选（保证每周标签一致，便于检索）
+tags:
+  methods:
+    - 鲁棒优化
+    - 分布鲁棒优化
+    - 两阶段/多阶段随机规划
+    - 机会约束/风险度量
+    - 分解算法
+    - 混合整数规划
+    - 线性/凸/非凸优化
+    - 动态规划/MDP
+    - 深度强化学习
+    - 机器学习与优化结合
+    - 在线学习/Bandit
+    - 启发式/元启发式
+    - 博弈论/机制设计
+    - 排队论/随机模型
+    - 仿真优化
+    - 近似算法/复杂性
+    - 计量/实证
+  applications:
+    - 物流与路径
+    - 供应链/库存
+    - 生产调度
+    - 交通运输
+    - 能源/电力
+    - 医疗健康
+    - 金融/风险
+    - 收益管理/定价
+    - 平台/共享经济
+    - 理论（无特定应用）
+
+# ---------------------------------------------------------
+# 大模型配置：支持 Claude / OpenAI / DeepSeek 及任意 OpenAI 兼容接口
+#
+# 规则：按列表顺序，跳过没有配置 API key 的提供方；
+#       第一个可用的作为主力，调用失败时自动切换到下一个。
+# 只想用某一家：只在 GitHub Secrets 里配那一家的 key 即可；
+#       或设置环境变量 LLM_PROVIDER=deepseek 强制指定（workflow 手动运行时也可选择）。
+#
+# type:
+#   anthropic          Claude 官方 API（工具调用，结构化输出最稳）
+#   openai_compatible  OpenAI / DeepSeek / 通义千问 / Kimi / 智谱 / OpenRouter 等
+# base_url 可留空使用官方地址；用中转或代理时改成对应地址
+# ---------------------------------------------------------
+llm:
+  providers:
+    - name: claude
+      type: anthropic
+      model: "claude-sonnet-5-5"        # 更省钱：claude-haiku-5-5
+      api_key_env: ANTHROPIC_API_KEY
+      base_url: ""
+
+    - name: openai
+      type: openai_compatible
+      model: "gpt-6.1-sol"              # 更省钱：gpt-6-luna
+      api_key_env: OPENAI_API_KEY
+      base_url: "https://api.openai.com/v1"
+
+    - name: deepseek
+      type: openai_compatible
+      model: "deepseek-flash"           # 更强：deepseek-v4-pro
+      api_key_env: DEEPSEEK_API_KEY
+      base_url: "https://api.deepseek.com"
+
+    # 示例：再加一个通义千问（取消注释并在 Secrets 里添加 DASHSCOPE_API_KEY）
+    # - name: qwen
+    #   type: openai_compatible
+    #   model: "qwen-plus"
+    #   api_key_env: DASHSCOPE_API_KEY
+    #   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+  batch_size: 8                  # 每次调用总结几篇
+  summary_language: "中文"
+  timeout_seconds: 180
+
+# ---------------------------------------------------------
+# 运行参数
+# ---------------------------------------------------------
+settings:
+  first_run_lookback_days: 7     # 首次运行抓取最近几天
+  overlap_days: 3                # 每次抓取与上次重叠的天数（防漏，DOI 自动去重）
+  abstract_grace_days: 5         # 新论文暂无摘要时最多等几天（开放数据源通常滞后几天）
+  min_relevance_for_top: 4       # 相关度 ≥ 此值进入“本期精选”
+  skip_title_patterns:           # 过滤非研究性条目（正则，忽略大小写）
+    - "^erratum"
+    - "^corrigendum"
+    - "^correction"
+    - "editorial board"
+    - "^issue information"
+    - "^front matter"
+    - "^back matter"
+    - "^retraction"
+    - "^in memoriam"
+    - "^reviewer"
+    - "^table of contents"
